@@ -78,7 +78,12 @@ static void syn_cmd_fail(sourceinfo_t *si, cmd_faultcode_t fault, const char *te
         notice_user_sts(si->service->me, si->su, text);
 }
 
-struct sourceinfo_vtable syn_si_vtable = { "syn", syn_cmd_fail, syn_cmd_success_nodata, syn_cmd_success_string };
+struct sourceinfo_vtable syn_si_vtable = {
+    .description        = "syn",
+    .cmd_fail           = syn_cmd_fail,
+    .cmd_success_nodata = syn_cmd_success_nodata,
+    .cmd_success_string = syn_cmd_success_string,
+};
 
 
 static void syn_handler(sourceinfo_t *si, int parc, char *parv[])
