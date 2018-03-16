@@ -2,13 +2,6 @@
 
 #include "syn.h"
 
-DECLARE_MODULE_V1
-(
-        "syn/masks", false, _modinit, _moddeinit,
-        "$Revision$",
-        "Stephen Bennett <stephen -at- freenode.net>"
-);
-
 static void masks_newuser(hook_user_nick_t *data);
 
 static void syn_cmd_addmask(sourceinfo_t *si, int parc, char **parv);
@@ -161,7 +154,7 @@ static void load_maskdb()
     fclose(f);
 }
 
-void _modinit(module_t *m)
+static void mod_init(module_t *m)
 {
     use_syn_main_symbols(m);
     use_syn_util_symbols(m);
@@ -185,7 +178,7 @@ void _modinit(module_t *m)
     load_maskdb();
 }
 
-void _moddeinit(module_unload_intent_t intent)
+static void mod_deinit(module_unload_intent_t intent)
 {
     save_maskdb();
 
@@ -511,3 +504,10 @@ void syn_cmd_listmask(sourceinfo_t *si, int parc, char **parv)
 
     command_success_nodata(si, "%d masks found", count);
 }
+
+DECLARE_MODULE_V1
+(
+        "syn/masks", false, mod_init, mod_deinit,
+        "$Revision$",
+        "Stephen Bennett <stephen -at- freenode.net>"
+);

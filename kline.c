@@ -3,13 +3,6 @@
 
 #include "syn.h"
 
-DECLARE_MODULE_V1
-(
-        "syn/kline", false, _modinit, _moddeinit,
-        "$Revision$",
-        "Stephen Bennett <stephen -at- freenode.net>"
-);
-
 mowgli_patricia_t *ircd_klines;
 mowgli_list_t ircd_wildcard_klines;
 mowgli_heap_t *ircd_kline_heap;
@@ -23,7 +16,7 @@ static void expire_klines(void *unused);
 
 char *kline_kill_reason = 0;
 
-void _modinit(module_t *m)
+static void mod_init(module_t *m)
 {
     use_syn_main_symbols(m);
 
@@ -41,7 +34,7 @@ void _modinit(module_t *m)
     expire_timer = mowgli_timer_add(base_eventloop, "expire_ircd_klines", expire_klines, NULL, 120);
 }
 
-void _moddeinit(module_unload_intent_t intent)
+static void mod_deinit(module_unload_intent_t intent)
 {
     pcommand_delete("KLINE");
     pcommand_delete("BAN");
@@ -312,3 +305,10 @@ static void syn_m_ban(sourceinfo_t *si, int parc, char **parv)
         syn_remove_kline(user, host);
     }
 }
+
+DECLARE_MODULE_V1
+(
+        "syn/kline", false, mod_init, mod_deinit,
+        "$Revision$",
+        "Stephen Bennett <stephen -at- freenode.net>"
+);

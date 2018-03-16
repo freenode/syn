@@ -3,13 +3,6 @@
 
 #include "syn.h"
 
-DECLARE_MODULE_V1
-(
-        "syn/facilities", false, _modinit, _moddeinit,
-        "$Revision$",
-        "Stephen Bennett <stephen -at- freenode.net>"
-);
-
 void facility_newuser(hook_user_nick_t *data);
 
 void syn_cmd_facility(sourceinfo_t *si, int parc, char **parv);
@@ -241,7 +234,7 @@ void save_facilities()
     }
 }
 
-void _modinit(module_t *m)
+static void mod_init(module_t *m)
 {
     use_syn_main_symbols(m);
     use_syn_util_symbols(m);
@@ -272,7 +265,7 @@ void _modinit(module_t *m)
     load_facilities();
 }
 
-void _moddeinit(module_unload_intent_t intent)
+static void mod_deinit(module_unload_intent_t intent)
 {
     save_facilities();
 
@@ -830,4 +823,9 @@ static void on_host_change(void *vdata)
     sethost_sts(syn->me, data->user, data->user->vhost);
 }
 
-
+DECLARE_MODULE_V1
+(
+        "syn/facilities", false, mod_init, mod_deinit,
+        "$Revision$",
+        "Stephen Bennett <stephen -at- freenode.net>"
+);

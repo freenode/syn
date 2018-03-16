@@ -2,13 +2,6 @@
 
 #include "syn.h"
 
-DECLARE_MODULE_V1
-(
-        "syn/joinrate", false, _modinit, _moddeinit,
-        "$Revision$",
-        "Stephen Bennett <stephen -at- freenode.net>"
-);
-
 static void syn_ratecheck(hook_channel_joinpart_t *data);
 
 static void syn_cmd_setrate(sourceinfo_t *si, int parc, char **parv);
@@ -105,7 +98,7 @@ void save_rate_settings()
     fclose(f);
 }
 
-void _modinit(module_t *m)
+static void mod_init(module_t *m)
 {
     use_syn_main_symbols(m);
 
@@ -125,7 +118,7 @@ void _modinit(module_t *m)
     load_rate_settings();
 }
 
-void _moddeinit(module_unload_intent_t intent)
+static void mod_deinit(module_unload_intent_t intent)
 {
     save_rate_settings();
 
@@ -283,3 +276,10 @@ static void syn_cmd_setrate(sourceinfo_t *si, int parc, char **parv)
     command_success_nodata(si, "Warning threshold for %s set to %d seconds, with a burst of %d", parv[0], r, b);
     save_rate_settings();
 }
+
+DECLARE_MODULE_V1
+(
+        "syn/joinrate", false, mod_init, mod_deinit,
+        "$Revision$",
+        "Stephen Bennett <stephen -at- freenode.net>"
+);

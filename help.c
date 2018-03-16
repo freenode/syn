@@ -2,25 +2,18 @@
 
 #include "syn.h"
 
-DECLARE_MODULE_V1
-(
-        "syn/help", false, _modinit, _moddeinit,
-        "$Revision$",
-        "Stephen Bennett <stephen -at- freenode.net>"
-);
-
 static void syn_cmd_help(sourceinfo_t *si, int parc, char *parv[]);
 
 command_t syn_help = { "HELP", N_("Displays contextual help information."), "syn:general", 1, syn_cmd_help };
 
-void _modinit(module_t *m)
+static void mod_init(module_t *m)
 {
     use_syn_main_symbols(m);
 
     service_named_bind_command("syn", &syn_help);
 }
 
-void _moddeinit(module_unload_intent_t intent)
+static void mod_deinit(module_unload_intent_t intent)
 {
     service_named_unbind_command("syn", &syn_help);
 }
@@ -47,3 +40,10 @@ void syn_cmd_help(sourceinfo_t *si, int parc, char *parv[])
     /* take the command through the hash table */
     help_display(si, syn, command, syn->commands);
 }
+
+DECLARE_MODULE_V1
+(
+        "syn/help", false, mod_init, mod_deinit,
+        "$Revision$",
+        "Stephen Bennett <stephen -at- freenode.net>"
+);

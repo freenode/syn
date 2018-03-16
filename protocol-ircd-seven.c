@@ -15,8 +15,6 @@
 
 #include "syn_hooktypes.h"
 
-DECLARE_MODULE_V1("syn/protocol-ircd-seven", true, _modinit, NULL, PACKAGE_STRING, "Atheme Development Group <http://www.atheme.org>");
-
 /* *INDENT-OFF* */
 
 ircd_t SevenSyn = {
@@ -130,7 +128,7 @@ static unsigned int sevensyn_server_login(void)
 	return 0;
 }
 
-void _modinit(module_t * m)
+static void mod_init(module_t * m)
 {
 	MODULE_TRY_REQUEST_DEPENDENCY(m, "protocol/ircd-seven");
 
@@ -149,6 +147,8 @@ void _modinit(module_t * m)
 
 	pmodule_loaded = true;
 }
+
+DECLARE_MODULE_V1("syn/protocol-ircd-seven", true, mod_init, NULL, PACKAGE_STRING, "Atheme Development Group <http://www.atheme.org>");
 
 /* vim:cinoptions=>s,e0,n0,f0,{0,}0,^0,=s,ps,t0,c3,+s,(2s,us,)20,*30,gs,hs
  * vim:ts=8

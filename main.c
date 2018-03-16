@@ -1,12 +1,5 @@
 #include "atheme.h"
 
-DECLARE_MODULE_V1
-(
-        "syn/main", false, _modinit, _moddeinit,
-        "$Revision$",
-        "Stephen Bennett <stephen -at- freenode.net>"
-);
-
 static void syn_handler(sourceinfo_t *si, int parc, char *parv[]);
 static void syn_join_channel(void *unused);
 
@@ -20,7 +13,7 @@ struct
     unsigned int verbosity;
 } syn_config;
 
-void _modinit(module_t *m)
+static void mod_init(module_t *m)
 {
 //  command_add(&syn_help, &syn_cmdtree);
 
@@ -37,7 +30,7 @@ void _modinit(module_t *m)
     add_uint_conf_item("VERBOSE", &syn->conf_table, 0, &syn_config.verbosity, 0, 15, 0);
 }
 
-void _moddeinit(module_unload_intent_t intent)
+static void mod_deinit(module_unload_intent_t intent)
 {
 //  command_delete(&syn_help, &syn_cmdtree);
 
@@ -205,3 +198,9 @@ void syn_report2(unsigned int level, char *fmt, ...)
     va_end(ap);
 }
 
+DECLARE_MODULE_V1
+(
+        "syn/main", false, mod_init, mod_deinit,
+        "$Revision$",
+        "Stephen Bennett <stephen -at- freenode.net>"
+);

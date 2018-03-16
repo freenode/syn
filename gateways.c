@@ -3,13 +3,6 @@
 
 #include "syn.h"
 
-DECLARE_MODULE_V1
-(
-        "syn/gateways", false, _modinit, _moddeinit,
-        "$Revision$",
-        "Stephen Bennett <stephen -at- freenode.net>"
-);
-
 static void check_user(hook_user_nick_t *data, bool isnewuser);
 static bool maybe_kline_user_host(user_t *u, const char *hostname);
 
@@ -44,7 +37,7 @@ static void gateway_newuser(hook_user_nick_t *data)
     check_user(data, true);
 }
 
-void _modinit(module_t *m)
+static void mod_init(module_t *m)
 {
     use_syn_main_symbols(m);
     use_syn_util_symbols(m);
@@ -63,7 +56,7 @@ void _modinit(module_t *m)
     check_all_users(NULL);
 }
 
-void _moddeinit(module_unload_intent_t intent)
+static void mod_deinit(module_unload_intent_t intent)
 {
     hook_del_user_add(gateway_newuser);
     hook_del_hook("syn_kline_added", check_all_users);
@@ -256,3 +249,9 @@ static void reverse_lookup_callback(void *vptr, dns_reply_t *reply)
     maybe_kline_user_host(u, reply->h_name);
 }
 
+DECLARE_MODULE_V1
+(
+        "syn/gateways", false, mod_init, mod_deinit,
+        "$Revision$",
+        "Stephen Bennett <stephen -at- freenode.net>"
+);

@@ -2,13 +2,6 @@
 
 #include "syn.h"
 
-DECLARE_MODULE_V1
-(
-        "syn/tor", false, _modinit, _moddeinit,
-        "$Revision$",
-        "Stephen Bennett <stephen -at- freenode.net>"
-);
-
 static void tor_kline_check(void *);
 static void tor_newuser(hook_user_nick_t *data);
 
@@ -28,7 +21,7 @@ const unsigned int default_kline_duration = 24 * 3600;
 
 mowgli_eventloop_timer_t *update_tor_timer;
 
-void _modinit(module_t *m)
+static void mod_init(module_t *m)
 {
     user_t *u;
     mowgli_patricia_iteration_state_t state;
@@ -58,7 +51,7 @@ void _modinit(module_t *m)
     }
 }
 
-void _moddeinit(module_unload_intent_t intent)
+static void mod_deinit(module_unload_intent_t intent)
 {
     mowgli_patricia_destroy(torlist, NULL, NULL);
 
@@ -165,3 +158,9 @@ static void syn_cmd_checktor(sourceinfo_t *si, int parc, char **parv)
     command_success_nodata(si, _("\2%s\2 is %s as a tor node."), test, p != NULL ? "listed" : "not listed");
 }
 
+DECLARE_MODULE_V1
+(
+        "syn/tor", false, mod_init, mod_deinit,
+        "$Revision$",
+        "Stephen Bennett <stephen -at- freenode.net>"
+);

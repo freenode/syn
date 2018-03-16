@@ -1,12 +1,5 @@
 #include "atheme.h"
 
-DECLARE_MODULE_V1
-(
-        "syn/util", false, NULL, NULL,
-        "$Revision$",
-        "Stephen Bennett <stephen -at- freenode.net>"
-);
-
 const char *decode_hex_ip(const char *hex)
 {
     static char buf[16];
@@ -78,3 +71,9 @@ const char *syn_format_expiry(time_t t)
     return expirybuf;
 }
 
+DECLARE_MODULE_V1
+(
+        "syn/util", false, NULL, NULL,
+        "$Revision$",
+        "Stephen Bennett <stephen -at- freenode.net>"
+);
