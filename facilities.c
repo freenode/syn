@@ -9,7 +9,7 @@ void syn_cmd_facility(sourceinfo_t *si, int parc, char **parv);
 
 mowgli_patricia_t *syn_facility_cmds;
 
-command_t syn_facility = { "FACILITY", N_("Inspects or modifies facility lists"), "syn:facility", 4, syn_cmd_facility };
+command_t syn_facility = { "FACILITY", N_("Inspects or modifies facility lists"), "syn:facility", 4, syn_cmd_facility, { .path = "syn/facility" } };
 
 static void syn_cmd_facility_list(sourceinfo_t *si, int parc, char **parv);
 static void syn_cmd_facility_add(sourceinfo_t *si, int parc, char **parv);
