@@ -7,7 +7,7 @@ void (*syn_report)(char *, ...);
 void (*syn_report2)(unsigned int, char *, ...);
 void (*syn_debug)(int, char *, ...);
 
-inline void use_syn_main_symbols(module_t *m)
+static inline void use_syn_main_symbols(module_t *m)
 {
     MODULE_TRY_REQUEST_SYMBOL(m, syn_report, "syn/main", "syn_report");
     MODULE_TRY_REQUEST_SYMBOL(m, syn_report2, "syn/main", "syn_report2");
@@ -22,7 +22,7 @@ const char* (*get_random_host_part)();
 time_t (*syn_parse_duration)(const char *);
 const char* (*syn_format_expiry)(time_t);
 
-inline void use_syn_util_symbols(module_t *m)
+static inline void use_syn_util_symbols(module_t *m)
 {
     MODULE_TRY_REQUEST_SYMBOL(m, decode_hex_ip, "syn/util", "decode_hex_ip");
     MODULE_TRY_REQUEST_SYMBOL(m, get_random_host_part, "syn/util", "get_random_host_part");
@@ -36,7 +36,7 @@ void (*syn_kill)(user_t *, const char *, ...);
 void (*syn_kill2)(user_t *, const char *, const char *, ...);
 void (*syn_kill_or_kline)(user_t *, int, const char *, ...);
 
-inline void use_syn_kline_symbols(module_t *m)
+static inline void use_syn_kline_symbols(module_t *m)
 {
     MODULE_TRY_REQUEST_SYMBOL(m, syn_find_kline, "syn/kline", "_syn_find_kline");
     MODULE_TRY_REQUEST_SYMBOL(m, syn_kline, "syn/kline", "_syn_kline");
