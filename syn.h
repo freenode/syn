@@ -19,6 +19,7 @@ static inline void use_syn_main_symbols(module_t *m)
 
 const char* (*decode_hex_ip)(const char *);
 const char* (*get_random_host_part)();
+const char* (*encode_ident_for_host)(const char *);
 time_t (*syn_parse_duration)(const char *);
 const char* (*syn_format_expiry)(time_t);
 
@@ -26,6 +27,7 @@ static inline void use_syn_util_symbols(module_t *m)
 {
     MODULE_TRY_REQUEST_SYMBOL(m, decode_hex_ip, "syn/util", "decode_hex_ip");
     MODULE_TRY_REQUEST_SYMBOL(m, get_random_host_part, "syn/util", "get_random_host_part");
+    MODULE_TRY_REQUEST_SYMBOL(m, encode_ident_for_host, "syn/util", "encode_ident_for_host");
     MODULE_TRY_REQUEST_SYMBOL(m, syn_parse_duration, "syn/util", "syn_parse_duration");
     MODULE_TRY_REQUEST_SYMBOL(m, syn_format_expiry, "syn/util", "syn_format_expiry");
 }

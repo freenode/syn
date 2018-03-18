@@ -32,7 +32,8 @@ typedef enum
     facility_cloak_undefined,
     facility_cloak_none,
     facility_cloak_random,
-    facility_cloak_hex_ident
+    facility_cloak_hex_ident,
+    facility_cloak_ident,
 } facility_cloak_type;
 
 static struct {
@@ -43,6 +44,7 @@ static struct {
     { "none",      facility_cloak_none      },
     { "random",    facility_cloak_random    },
     { "hexip",     facility_cloak_hex_ident },
+    { "ident",     facility_cloak_ident     },
     { NULL, 0 }
 };
 
@@ -462,6 +464,30 @@ void facility_newuser(hook_user_nick_t *data)
                 }
                 break;
 
+            }
+        case facility_cloak_ident:
+            {
+                char *identstart = strstr(new_vhost, "session");
+                if (identstart == NULL)
+                {
+                    syn_debug(2, "Ident cloaking used for %s, but I couldn't find a session marker in %s", u->nick, new_vhost);
+                    break;
+                }
+
+                const char *ident = u->user;
+                if (*ident == '~')
+                    ++ident;
+
+                const char *suffix = encode_ident_for_host(ident);
+                if (!suffix)
+                {
+                    syn_debug(2, "Cannot host-encode ident %s for user %s, giving up", ident, u->nick);
+                    break;
+                }
+
+                strncpy(identstart, suffix, new_vhost + HOSTLEN - identstart);
+                user_sethost(syn->me, u, new_vhost);
+                break;
             }
         case facility_cloak_random:
             {
