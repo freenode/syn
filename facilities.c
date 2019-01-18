@@ -92,7 +92,7 @@ typedef struct
     atheme_regex_t *re;
 } bl_entry_t;
 
-mowgli_dictionary_t *facilities;
+mowgli_patricia_t *facilities;
 
 unsigned int block_report_interval = 60;
 time_t last_block_report = 0;
@@ -103,9 +103,9 @@ mowgli_heap_t *facility_heap, *blacklist_heap;
 // NickServ and syn both cloak somebody.
 static void on_host_change(void *vdata);
 
-void free_facility(mowgli_dictionary_elem_t *e, void *v)
+void free_facility(const char *key, void *facility, void *unused)
 {
-    facility_t *f = e->data;
+    facility_t *f = facility;
 
     if (f->blockmessage)
         free(f->blockmessage);
@@ -158,7 +158,7 @@ void load_facilities()
             curr_facility->throttle[0] = atoi(throttle0);
             curr_facility->throttle[1] = atoi(throttle1);
 
-            mowgli_dictionary_add(facilities, curr_facility->hostpart, curr_facility);
+            mowgli_patricia_add(facilities, curr_facility->hostpart, curr_facility);
             continue;
         }
 
@@ -210,9 +210,9 @@ void save_facilities()
         return;
     }
 
-    mowgli_dictionary_iteration_state_t state;
+    mowgli_patricia_iteration_state_t state;
     facility_t *f;
-    MOWGLI_DICTIONARY_FOREACH(f, &state, facilities)
+    MOWGLI_PATRICIA_FOREACH(f, &state, facilities)
     {
         fprintf(db, "F %s %s %d %d %d\n", f->hostpart, string_from_cloak_type(f->cloaking),
                 f->blocked, f->throttle[0], f->throttle[1]);
@@ -258,7 +258,7 @@ static void mod_init(module_t *m)
 
     facility_heap = mowgli_heap_create(sizeof(facility_t), 64, BH_NOW);
     blacklist_heap = mowgli_heap_create(sizeof(bl_entry_t), 64, BH_NOW);
-    facilities = mowgli_dictionary_create((mowgli_dictionary_comparator_func_t)strcasecmp);
+    facilities = mowgli_patricia_create(strcasecanon);
 
     add_uint_conf_item("FACILITY_REPORT_RATE", &syn->conf_table, 0, &block_report_interval, 0, 3600, 60);
 
@@ -271,7 +271,7 @@ static void mod_deinit(module_unload_intent_t intent)
 
     del_conf_item("FACILITY_REPORT_RATE", &syn->conf_table);
 
-    mowgli_dictionary_destroy(facilities, free_facility, NULL);
+    mowgli_patricia_destroy(facilities, free_facility, NULL);
     mowgli_heap_destroy(facility_heap);
     mowgli_heap_destroy(blacklist_heap);
 
@@ -287,7 +287,7 @@ void facility_newuser(hook_user_nick_t *data)
 {
     user_t *u = data->u;
     facility_t *f;
-    mowgli_dictionary_iteration_state_t state;
+    mowgli_patricia_iteration_state_t state;
 
     /* If the user has already been killed, don't try to do anything */
     if (!u)
@@ -301,7 +301,7 @@ void facility_newuser(hook_user_nick_t *data)
 
     int dospam = 0;
 
-    MOWGLI_DICTIONARY_FOREACH(f, &state, facilities)
+    MOWGLI_PATRICIA_FOREACH(f, &state, facilities)
     {
         if (0 != strncasecmp(u->host, f->hostpart, strlen(f->hostpart)))
             continue;
@@ -511,8 +511,8 @@ void syn_cmd_facility_list(sourceinfo_t *si, int parc, char **parv)
 
     int count = 0;
     facility_t *f;
-    mowgli_dictionary_iteration_state_t state;
-    MOWGLI_DICTIONARY_FOREACH(f, &state, facilities)
+    mowgli_patricia_iteration_state_t state;
+    MOWGLI_PATRICIA_FOREACH(f, &state, facilities)
     {
         if (match && 0 != strncmp(match, f->hostpart, strlen(match)))
             continue;
@@ -542,7 +542,7 @@ void syn_cmd_facility_add(sourceinfo_t *si, int parc, char **parv)
     strncpy(f->hostpart, hostpart, HOSTLEN);
     f->cloaking = cloak;
 
-    mowgli_dictionary_add(facilities, f->hostpart, f);
+    mowgli_patricia_add(facilities, f->hostpart, f);
 
     syn_report("\002FACILITY ADD\002 %s by %s", f->hostpart, get_oper_name(si));
 
@@ -560,7 +560,7 @@ void syn_cmd_facility_del(sourceinfo_t *si, int parc, char **parv)
         return;
     }
 
-    mowgli_dictionary_elem_t *f = mowgli_dictionary_find(facilities, parv[0]);
+    facility_t *f = mowgli_patricia_retrieve(facilities, parv[0]);
 
     if (f == NULL)
     {
@@ -568,8 +568,8 @@ void syn_cmd_facility_del(sourceinfo_t *si, int parc, char **parv)
         return;
     }
 
-    free_facility(f, NULL);
-    mowgli_dictionary_delete(facilities, parv[0]);
+    free_facility(NULL, f, NULL);
+    mowgli_patricia_delete(facilities, parv[0]);
 
     syn_report("\002FACILITY DEL\002 %s by %s", parv[0], get_oper_name(si));
 
@@ -589,7 +589,7 @@ void syn_cmd_facility_set(sourceinfo_t *si, int parc, char **parv)
         return;
     }
 
-    facility_t *f = mowgli_dictionary_retrieve(facilities, parv[0]);
+    facility_t *f = mowgli_patricia_retrieve(facilities, parv[0]);
     if (f== NULL)
     {
         command_fail(si, fault_badparams, "No such facility %s", parv[0]);
@@ -700,7 +700,7 @@ void syn_cmd_facility_addbl(sourceinfo_t *si, int parc, char **parv)
         return;
     }
 
-    facility_t *f = mowgli_dictionary_retrieve(facilities, parv[0]);
+    facility_t *f = mowgli_patricia_retrieve(facilities, parv[0]);
     if (f== NULL)
     {
         command_fail(si, fault_badparams, "No such facility %s", parv[0]);
@@ -736,7 +736,7 @@ void syn_cmd_facility_rmbl(sourceinfo_t *si, int parc, char **parv)
         return;
     }
 
-    facility_t *f = mowgli_dictionary_retrieve(facilities, parv[0]);
+    facility_t *f = mowgli_patricia_retrieve(facilities, parv[0]);
     if (f== NULL)
     {
         command_fail(si, fault_badparams, "No such facility %s", parv[0]);
@@ -774,7 +774,7 @@ void syn_cmd_facility_show(sourceinfo_t *si, int parc, char **parv)
         return;
     }
 
-    facility_t *f = mowgli_dictionary_retrieve(facilities, parv[0]);
+    facility_t *f = mowgli_patricia_retrieve(facilities, parv[0]);
     if (f== NULL)
     {
         command_fail(si, fault_badparams, "No such facility %s", parv[0]);
