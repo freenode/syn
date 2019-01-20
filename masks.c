@@ -340,8 +340,8 @@ void syn_cmd_addmask(sourceinfo_t *si, int parc, char **parv)
 
     mowgli_node_add(newmask, mowgli_node_create(), &masks);
 
-    syn_report("\002ADDMASK\002 %s (%s) by %s, expires %s",
-            pattern, stype, get_oper_name(si), syn_format_expiry(newmask->expires));
+    syn_report("\002ADDMASK\002 /%s/%s (%s) by %s, expires %s",
+            pattern, (flags & AREGEX_ICASE) ? "i" : "", stype, get_oper_name(si), syn_format_expiry(newmask->expires));
     command_success_nodata(si, "Added \2%s\2 to %s mask list, expiring %s.",
                             pattern, stype, syn_format_expiry(newmask->expires));
 
@@ -375,7 +375,7 @@ void syn_cmd_delmask(sourceinfo_t *si, int parc, char **parv)
         mask_t *m = n->data;
         if (0 == strcmp(pattern, m->regex))
         {
-            syn_report("\002DELMASK\002 %s (%s) by %s", pattern, string_from_mask_type(m->type), get_oper_name(si));
+            syn_report("\002DELMASK\002 /%s/%s (%s) by %s", pattern, (m->reflags & AREGEX_ICASE) ? "i" : "", string_from_mask_type(m->type), get_oper_name(si));
             command_success_nodata(si, "Removing \2%s\2 from %s mask list", pattern, string_from_mask_type(m->type));
             regex_destroy(m->re);
             free(m->regex);
@@ -441,7 +441,7 @@ void syn_cmd_setmask(sourceinfo_t *si, int parc, char **parv)
     if (t != mask_unknown)
     {
         m->type = t;
-        syn_report("\002SETMASK\002 %s type->%s by %s", pattern, nextarg, get_oper_name(si));
+        syn_report("\002SETMASK\002 /%s/%s type->%s by %s", pattern, (m->reflags & AREGEX_ICASE) ? "i" : "", nextarg, get_oper_name(si));
         command_success_nodata(si, "Changed type of mask \2%s\2 to %s", pattern, nextarg);
 
         save_maskdb();
@@ -455,13 +455,13 @@ void syn_cmd_setmask(sourceinfo_t *si, int parc, char **parv)
         if (duration > 0)
         {
             m->expires = CURRTIME + duration * 60;
-            syn_report("\002SETMASK\002 %s duration->%d by %s", pattern, duration, get_oper_name(si));
+            syn_report("\002SETMASK\002 /%s/%s duration->%d by %s", pattern, (m->reflags & AREGEX_ICASE) ? "i" : "", duration, get_oper_name(si));
             command_success_nodata(si, "Changed expiry of mask \2%s\2 to %ld minutes", pattern, duration);
         }
         else
         {
             m->expires = 0;
-            syn_report("\002SETMASK\002 %s expiry->off by %s", pattern, get_oper_name(si));
+            syn_report("\002SETMASK\002 /%s/%s expiry->off by %s", pattern, (m->reflags & AREGEX_ICASE) ? "i" : "", get_oper_name(si));
             command_success_nodata(si, "Expiry disabled for mask \2%s\2.", pattern);
         }
 
@@ -495,8 +495,8 @@ void syn_cmd_listmask(sourceinfo_t *si, int parc, char **parv)
 
         char buf[BUFSIZE];
         strncpy(buf, syn_format_expiry(m->added), BUFSIZE);
-        command_success_nodata(si, "\2%s\2 (%s), set by %s on %s, expires %s",
-                m->regex, string_from_mask_type(m->type), m->setter, 
+        command_success_nodata(si, "\2/%s/%s\2 (%s), set by %s on %s, expires %s",
+                m->regex, (m->reflags & AREGEX_ICASE) ? "i" : "", string_from_mask_type(m->type), m->setter,
                 buf, syn_format_expiry(m->expires));
 
         ++count;
