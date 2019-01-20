@@ -54,6 +54,8 @@ kline_t* _syn_find_kline(const char *user, const char *host)
         k = n->data;
         if (0 == match(k->host, host))
             return k;
+        if (0 == match_ips(k->host, host))
+            return k;
     }
     return NULL;
 }
@@ -86,7 +88,7 @@ static void syn_add_kline(const char *setter, const char *user, const char *host
         *p = '\0';
     }
 
-    if (strchr(k->host, '*') || strchr(k->host, '?'))
+    if (strchr(k->host, '*') || strchr(k->host, '?') || (strchr(k->host, '/') && valid_ip_or_mask(k->host)))
     {
         mowgli_node_t *n = mowgli_node_create();
         mowgli_node_add(k, n, &ircd_wildcard_klines);
@@ -188,7 +190,7 @@ static void _syn_vkline(const char *host, int duration, const char *reason, va_l
         *p = '\0';
     }
 
-    if (strchr(k->host, '*') || strchr(k->host, '?'))
+    if (strchr(k->host, '*') || strchr(k->host, '?') || (strchr(k->host, '/') && valid_ip_or_mask(k->host)))
     {
         mowgli_node_t *n = mowgli_node_create();
         mowgli_node_add(k, n, &ircd_wildcard_klines);
