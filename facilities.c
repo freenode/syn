@@ -6,10 +6,11 @@
 void facility_newuser(hook_user_nick_t *data);
 
 void syn_cmd_facility(sourceinfo_t *si, int parc, char **parv);
+static void syn_facility_help(sourceinfo_t *si, const char *subcmd);
 
 mowgli_patricia_t *syn_facility_cmds;
 
-command_t syn_facility = { "FACILITY", N_("Inspects or modifies facility lists"), "syn:facility", 4, syn_cmd_facility, { .path = "syn/facility" } };
+command_t syn_facility = { "FACILITY", N_("Inspects or modifies facility lists"), "syn:facility", 4, syn_cmd_facility, { .func = syn_facility_help } };
 
 static void syn_cmd_facility_list(sourceinfo_t *si, int parc, char **parv);
 static void syn_cmd_facility_add(sourceinfo_t *si, int parc, char **parv);
@@ -479,6 +480,81 @@ void facility_newuser(hook_user_nick_t *data)
 
     if (dospam && !me.bursting)
         syn_report2(2, "Allowed %s!%s@%s [%s]", u->nick, u->user, u->vhost, u->gecos);
+}
+
+static void syn_facility_help(sourceinfo_t *si, const char *subcmd)
+{
+    if (!subcmd)
+    {
+        // This can't go into one big command_success_nodata with \n in it
+        // because syn defines its own sourceinfo vtable which doesn't bother
+        // to split on \n in its command_success_nodata implementation
+        command_success_nodata(si, _("***** \2%s Help\2 *****"), si->service->nick);
+        command_success_nodata(si, _("Help for \2FACILITY\2:"));
+        command_success_nodata(si, " ");
+        command_success_nodata(si, "The FACILITY command displays and manipulates facility");
+        command_success_nodata(si, "definitions.");
+        command_success_nodata(si, " ");
+        command_success_nodata(si, "A facility is roughly a related group of gateways, defined");
+        command_success_nodata(si, "by a host prefix. Any new client connecting is checked");
+        command_success_nodata(si, "against the list of facilities, and various actions may be");
+        command_success_nodata(si, "taken based on this.");
+        command_success_nodata(si, " ");
+        command_success_nodata(si, "Each facility has some or all of the following information");
+        command_success_nodata(si, "defined:");
+        command_success_nodata(si, " ");
+        command_success_nodata(si, " - The hostname prefix");
+        command_success_nodata(si, " - Whether this facility is currently blocked");
+        command_success_nodata(si, " - The message to send to clients blocked by this facility.");
+        command_success_nodata(si, " - A throttle limit. This is of the form x,y and translates");
+        command_success_nodata(si, "   rougly to y clients per x*y seconds.");
+        command_success_nodata(si, " - The message to send to clients denied because of this");
+        command_success_nodata(si, "   facility's throttle.");
+        command_success_nodata(si, " - The cloaking scheme applied to matching clients.");
+        command_success_nodata(si, " - A blacklist of regular expressions. If any of these match");
+        command_success_nodata(si, "   a client that matches this facility, it will be denied.");
+        command_success_nodata(si, " ");
+        command_success_nodata(si, "Facilities are checked in order from least specific to most");
+        command_success_nodata(si, "specific. If any facility is blocked, the client is killed,");
+        command_success_nodata(si, "with the exception that a negative block value can override");
+        command_success_nodata(si, "a positive one from a more general facility. If the client");
+        command_success_nodata(si, "is determined to be blocked, the most specific configured");
+        command_success_nodata(si, "block message is used.");
+        command_success_nodata(si, " ");
+        command_success_nodata(si, "The throttle settings for every matching facility are");
+        command_success_nodata(si, "checked and updated, even if the client is blocked. If the");
+        command_success_nodata(si, "client is denied due to throttling, the most specific");
+        command_success_nodata(si, "configured throttle message is used.");
+        command_success_nodata(si, " ");
+        command_success_nodata(si, "For every matching facility, the client is checked against");
+        command_success_nodata(si, "that facility's blacklist. If any of those regular");
+        command_success_nodata(si, "expressions matches, then the client is denied, and the most");
+        command_success_nodata(si, "specific block message so far encountered is used.");
+        command_success_nodata(si, " ");
+        command_success_nodata(si, "If the client is allowed to connect, then the cloaking");
+        command_success_nodata(si, "setting is used to determine whether to modify the client's");
+        command_success_nodata(si, "visible host name. Again the most specific defined value");
+        command_success_nodata(si, "is used. Possible values are:");
+        command_success_nodata(si, " ");
+        command_success_nodata(si, " - none. Leave the client's host alone.");
+        command_success_nodata(si, " - random. A 'session' marker in the client's host is");
+        command_success_nodata(si, "   replaced by a random text string.");
+        command_success_nodata(si, " - hexip. The user's ident is treated as a hex-encoded IP");
+        command_success_nodata(si, "   address, as used by several web gateways. A 'session'");
+        command_success_nodata(si, "   marker in the user's host is replaced by ");
+        command_success_nodata(si, "   'ip.<decoded ip>'. If the ident cannot be decoded this");
+        command_success_nodata(si, "   way, it falls back to the random method.");
+        command_success_nodata(si, " ");
+        command_success_nodata(si, "If no matching facility has a defined cloaking method, then");
+        command_success_nodata(si, "the default is \2none\2.");
+        command_success_nodata(si, " ");
+        command_help(si, syn_facility_cmds);
+        command_success_nodata(si, " ");
+        command_success_nodata(si, _("For more information, use \2/msg %s HELP FACILITY \37command\37\2."), si->service->nick);
+        command_success_nodata(si, _("***** \2End of Help\2 *****"));
+    }
+    else
+        help_display_as_subcmd(si, si->service, "FACILITY", subcmd, syn_facility_cmds);
 }
 
 void syn_cmd_facility(sourceinfo_t *si, int parc, char **parv)
