@@ -1,0 +1,9 @@
+Help for FACILITY SHOW
+
+This command displays detailed information about a facility,
+including any blacklist entries defined for it.
+
+Syntax: FACILITY SHOW <hostpart>
+
+Examples:
+    /msg &nick& FACILITY SHOW gateway/web/foobar
