@@ -1,0 +1,20 @@
+Help for ADDMASK:
+
+This command adds a mask that will report and optionally k-line
+matching masks, or one that is exempt from other masks.
+
+Masks are matched against "nick!user@host gecos" whenever
+a user connects or changes nick.
+
+Possible types are:
+
+ - suspicious: matches will be reported in the report channel
+ - lethal: matches will be reported and k-lined
+ - exempt: matches are exempt from other types of mask
+
+Syntax: ADDMASK /<regex>/[i] <type> [~<duration>]
+
+Examples:
+    /msg &nick& ADDMASK /^spambot\d+/i lethal
+    /msg &nick& ADDMASK / .*notalogbot/ suspicious ~30m
+    /msg &nick& ADDMASK /@freenode\/staff\/.* / exempt

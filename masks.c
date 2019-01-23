@@ -9,10 +9,10 @@ static void syn_cmd_delmask(sourceinfo_t *si, int parc, char **parv);
 static void syn_cmd_setmask(sourceinfo_t *si, int parc, char **parv);
 static void syn_cmd_listmask(sourceinfo_t *si, int parc, char **parv);
 
-command_t syn_addmask = { "ADDMASK", N_("Adds a lethal, suspicious or exempt mask"), "syn:general", 1, syn_cmd_addmask };
-command_t syn_delmask = { "DELMASK", N_("Removes a lethal, suspicious or exempt mask"), "syn:general", 1, syn_cmd_delmask };
-command_t syn_setmask = { "SETMASK", N_("Modifies settings for a lethal, suspicious or exempt mask"), "syn:general", 1, syn_cmd_setmask };
-command_t syn_listmask = { "LISTMASK", N_("Displays configured mask lists"), "syn:general", 1, syn_cmd_listmask };
+command_t syn_addmask = { "ADDMASK", N_("Adds a lethal, suspicious or exempt mask"), "syn:general", 1, syn_cmd_addmask, { .path = "syn/addmask" } };
+command_t syn_delmask = { "DELMASK", N_("Removes a lethal, suspicious or exempt mask"), "syn:general", 1, syn_cmd_delmask, { .path = "syn/delmask" } };
+command_t syn_setmask = { "SETMASK", N_("Modifies settings for a lethal, suspicious or exempt mask"), "syn:general", 1, syn_cmd_setmask, { .path = "syn/setmask" } };
+command_t syn_listmask = { "LISTMASK", N_("Displays configured mask lists"), "syn:general", 1, syn_cmd_listmask, { .path = "syn/listmask" } };
 
 static unsigned int lethal_mask_duration = 3600*24;
 static char *lethal_mask_message = NULL;

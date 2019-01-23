@@ -1,0 +1,12 @@
+Help for SETMASK:
+
+This command changes the type or expiry of a mask added
+with ADDMASK.
+
+See the ADDMASK help for details on the possible types.
+
+Syntax: SETMASK /<regex>/ <type|~expiry>
+
+Examples:
+    /msg &nick& SETMASK /spambot$/ lethal
+    /msg &nick& SETMASK /spambot$/ ~30m

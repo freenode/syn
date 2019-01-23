@@ -1,0 +1,8 @@
+Help for DELMASK:
+
+This command removes a mask added by ADDMASK.
+
+Syntax: DELMASK /<regex>/
+
+Examples:
+    /msg &nick& DELMASK /spambot$/

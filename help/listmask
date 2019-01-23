@@ -1,0 +1,9 @@
+Help for LISTMASK:
+
+This command lists masks added by ADDMASK.
+
+Syntax: LISTMASK [<type>]
+
+Examples:
+    /msg &nick& LISTMASK
+    /msg &nick& LISTMASK exempt
