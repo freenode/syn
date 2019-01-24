@@ -288,6 +288,13 @@ static void mod_deinit(module_unload_intent_t intent)
     hook_del_hook("incoming_host_change", on_host_change);
 }
 
+static void facility_set_cloak(user_t *u, const char * cloak)
+{
+    metadata_add(u, "syn:facility-cloak", cloak);
+    if (strcmp(u->vhost, cloak))
+        user_sethost(syn->me, u, cloak);
+}
+
 void facility_newuser(hook_user_nick_t *data)
 {
     user_t *u = data->u;
@@ -424,8 +431,7 @@ void facility_newuser(hook_user_nick_t *data)
 
         case facility_cloak_account:
             {
-                // If they don't have a vhost yet, this will be a no-op.
-                user_sethost(syn->me, u, u->host);
+                facility_set_cloak(u, u->host);
                 break;
             }
 
@@ -447,7 +453,7 @@ void facility_newuser(hook_user_nick_t *data)
                     strncpy(ipstart, "ip.", new_vhost + HOSTLEN - ipstart);
                     ipstart += 3;
                     strncpy(ipstart, ip, new_vhost + HOSTLEN - ipstart);
-                    user_sethost(syn->me, u, new_vhost);
+                    facility_set_cloak(u, new_vhost);
                 }
                 else
                 {
@@ -482,7 +488,7 @@ void facility_newuser(hook_user_nick_t *data)
                 }
 
                 strncpy(identstart, suffix, new_vhost + HOSTLEN - identstart);
-                user_sethost(syn->me, u, new_vhost);
+                facility_set_cloak(u, new_vhost);
                 break;
             }
         case facility_cloak_random:
@@ -494,7 +500,7 @@ void facility_newuser(hook_user_nick_t *data)
                     break;
                 }
                 strncpy(randstart, get_random_host_part(), new_vhost + HOSTLEN - randstart);
-                user_sethost(syn->me, u, new_vhost);
+                facility_set_cloak(u, new_vhost);
                 break;
             }
     }
@@ -905,7 +911,8 @@ static void on_host_change(void *vdata)
 {
     hook_incoming_host_change_t *data = vdata;
 
-    if (!(data->user->flags & SYN_UF_FACILITY_USER))
+    metadata_t *md = metadata_find(data->user, "syn:facility-cloak");
+    if (!md)
         return;
 
     if ((0 == strncmp(data->user->vhost, "unaffiliated/", 13) && 0 != strncmp(data->oldvhost, "nat/", 4)) ||
@@ -914,7 +921,7 @@ static void on_host_change(void *vdata)
         // Override the host change -- a facility cloak is being replaced by unaffiliated, or a facility by
         // another facility (this happens when removing a nickserv account vhost while a gateway user is logged in)
         strshare_unref(data->user->vhost);
-        data->user->vhost = strshare_get(data->oldvhost);
+        data->user->vhost = strshare_get(md->value);
     }
     else
     {
