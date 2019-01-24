@@ -33,6 +33,62 @@ const char *get_random_host_part()
     return buf;
 }
 
+// Taken from ircd-seven extensions/sasl_usercloak.c, modified for const correctness
+static unsigned int fnv_hash_string(const char *str)
+{
+    unsigned int hash = 0x811c9dc5; // Magic value for 32-bit fnv1 hash initialisation.
+    unsigned const char *p = (unsigned const char *)str;
+    while (*p)
+    {
+        hash += (hash<<1) + (hash<<4) + (hash<<7) + (hash<<8) + (hash<<24);
+        hash ^= *p++;
+    }
+    return hash;
+}
+
+// Make sure to keep these in agreement.
+#define SUFFIX_HASH_LENGTH 8
+#define SUFFIX_HASH_FMT "%08ud"
+#define SUFFIX_HASH_MODULUS 100000000
+
+const char *encode_ident_for_host(const char *str)
+{
+    // ident + /x- + SUFFIX_HASH_LENGTH, and nul terminator
+    static char buf[USERLEN + SUFFIX_HASH_LENGTH + 3 + 1];
+    bool needhash = false;
+
+    char *dst = buf;
+    for (const char *src = str; *src; src++)
+    {
+        if (str - src > USERLEN)
+        {
+            slog(LG_ERROR, "encode_ident_for_host(): tried to encode %s which is too long", str);
+            return NULL;
+        }
+
+        // For now, consider alphanumerics valid, as well as -
+        // . is technically possible in ident, but might be confused for cloak formatting
+        // Digits are not allowed unless there was another character successfully reproduced
+        // since this could otherwise produce output that looks like a CIDR mask,
+        // which messes with bans and is generally not done.
+        if (IsAlpha(*src) || (IsDigit(*src) && dst != buf) || *src == '-')
+            *dst++ = *src;
+        else
+            needhash = true;
+    }
+
+    *dst = '\0';
+
+    if (needhash)
+    {
+        unsigned int hashval = fnv_hash_string(str);
+        hashval %= SUFFIX_HASH_MODULUS;
+        snprintf(dst, 3 + SUFFIX_HASH_LENGTH + 1, "/x-" SUFFIX_HASH_FMT, hashval);
+    }
+
+    return buf;
+}
+
 time_t syn_parse_duration(const char *s)
 {
     time_t duration = atol(s);
