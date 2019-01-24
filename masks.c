@@ -37,6 +37,7 @@ typedef struct
 
     time_t expires;
     time_t added;
+    time_t last_match;
     char setter[NICKLEN*2+2];
 } mask_t;
 
@@ -102,9 +103,9 @@ static void save_maskdb()
     {
         mask_t *m = n->data;
 
-        fprintf(f, "/%s/%s %d %s %lu %lu\n",
+        fprintf(f, "/%s/%s %d %s %lu %lu %lu\n",
                 m->regex, m->reflags & AREGEX_ICASE ? "i" : "",
-                m->type, m->setter, m->added, m->expires);
+                m->type, m->setter, m->added, m->expires, m->last_match);
     }
     fclose(f);
 }
@@ -135,9 +136,9 @@ static void load_maskdb()
 
         char setter[BUFSIZE*2];
         int type;
-        time_t added, expires;
+        time_t added, expires, last_match = 0;
 
-        sscanf(args, "%d %s %lu %lu", &type, setter, &added, &expires);
+        sscanf(args, "%d %s %lu %lu %lu", &type, setter, &added, &expires, &last_match);
 
         mask_t *mask = malloc(sizeof(mask_t));
         mask->regex = sstrdup(regex);
@@ -146,6 +147,7 @@ static void load_maskdb()
         strncpy(mask->setter, setter, sizeof(mask->setter));
         mask->added = added;
         mask->expires = expires;
+        mask->last_match = last_match;
         mask->type = type;
 
         mowgli_node_add(mask, mowgli_node_create(), &masks);
@@ -211,9 +213,10 @@ void masks_newuser(hook_user_nick_t *data)
     char *suspicious_regex = NULL, *blocked_regex = NULL;
 
     mowgli_node_t *n;
+    mask_t *m;
     MOWGLI_LIST_FOREACH(n, masks.head)
     {
-        mask_t *m = n->data;
+        m = n->data;
 
         if (! regex_match(m->re, nuh))
             continue;
@@ -237,6 +240,8 @@ void masks_newuser(hook_user_nick_t *data)
         if (exempt)
             break;
     }
+
+    m->last_match = CURRTIME;
 
     if (exempt == 1)
         return;
@@ -336,6 +341,7 @@ void syn_cmd_addmask(sourceinfo_t *si, int parc, char **parv)
         newmask->expires = 0;
 
     newmask->added = CURRTIME;
+    newmask->last_match = 0;
     strncpy(newmask->setter, get_oper_name(si), sizeof(newmask->setter));
 
     mowgli_node_add(newmask, mowgli_node_create(), &masks);
@@ -493,11 +499,13 @@ void syn_cmd_listmask(sourceinfo_t *si, int parc, char **parv)
         if (t != mask_unknown && t != m->type)
             continue;
 
-        char buf[BUFSIZE];
-        strncpy(buf, syn_format_expiry(m->added), BUFSIZE);
-        command_success_nodata(si, "\2/%s/%s\2 (%s), set by %s on %s, expires %s",
+        char added[BUFSIZE], expires[BUFSIZE], last_match[BUFSIZE];
+        strncpy(added, syn_format_expiry(m->added), BUFSIZE);
+        strncpy(expires, syn_format_expiry(m->expires), BUFSIZE);
+        strncpy(last_match, syn_format_expiry(m->last_match), BUFSIZE);
+        command_success_nodata(si, "\2/%s/%s\2 (%s), set by %s on %s, expires %s, last matched %s",
                 m->regex, (m->reflags & AREGEX_ICASE) ? "i" : "", string_from_mask_type(m->type), m->setter,
-                buf, syn_format_expiry(m->expires));
+                added, expires, last_match);
 
         ++count;
     }
