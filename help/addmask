@@ -12,9 +12,11 @@ Possible types are:
  - lethal: matches will be reported and k-lined
  - exempt: matches are exempt from other types of mask
 
+You can use characters other than / to delimit the mask.
+
 Syntax: ADDMASK /<regex>/[i] <type> [~<duration>]
 
 Examples:
     /msg &nick& ADDMASK /^spambot\d+/i lethal
     /msg &nick& ADDMASK / .*notalogbot/ suspicious ~30m
-    /msg &nick& ADDMASK /@freenode\/staff\/.* / exempt
+    /msg &nick& ADDMASK #@freenode/staff/.* # exempt
