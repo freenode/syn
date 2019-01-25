@@ -291,6 +291,15 @@ static void mod_deinit(module_unload_intent_t intent)
 static void facility_set_cloak(user_t *u, const char * cloak)
 {
     metadata_add(u, "syn:facility-cloak", cloak);
+
+    // Check whether they've already been cloaked. If vhost contains /, vhost != host, and
+    // vhost isn't unaffiliated/*, then they have a project cloak that we shouldn't override.
+    char *slash = strchr(u->vhost, '/');
+    if (slash != NULL && 0 != strncmp(u->vhost, "unaffiliated", slash - u->vhost) &&
+            0 != strncmp(u->vhost, u->host, HOSTLEN))
+        return;
+
+    // Don't send out a no-op cloak change either
     if (strcmp(u->vhost, cloak))
         user_sethost(syn->me, u, cloak);
 }
@@ -413,13 +422,6 @@ void facility_newuser(hook_user_nick_t *data)
         data->u = NULL;
         return;
     }
-
-    // Check whether they've already been cloaked. If vhost contains /, vhost != host, and
-    // vhost isn't unaffiliated/*, then they have a project cloak that we shouldn't override.
-    char *slash = strchr(u->vhost, '/');
-    if (slash != NULL && 0 != strncmp(u->vhost, "unaffiliated", slash - u->vhost) &&
-            0 != strncmp(u->vhost, u->host, HOSTLEN))
-        return;
 
     char new_vhost[HOSTLEN];
     mowgli_strlcpy(new_vhost, u->host, HOSTLEN);
