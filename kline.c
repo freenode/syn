@@ -293,12 +293,12 @@ static void syn_m_ban(sourceinfo_t *si, int parc, char **parv)
     }
 
     const char *user = parv[1], *host = parv[2], *setter = parv[6], *reason = parv[7];
-    int creation = atoi(parv[3]), duration = atoi(parv[4]); // lifetime = atoi(parv[5]);
+    int duration = atoi(parv[4]); // creation = atoi(parv[3]), lifetime = atoi(parv[5]);
 
     if (setter[0] == '*' && si->su)
         setter = si->su->nick;
 
-    if (creation + duration > CURRTIME)
+    if (duration != 0)
     {
         syn_add_kline(setter, user, host, duration, reason);
     }
