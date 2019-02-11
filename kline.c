@@ -110,7 +110,14 @@ static void syn_remove_kline(const char *user, const char *host)
 
     kline_t *removed = mowgli_patricia_delete(ircd_klines, host);
     if (removed)
-        mowgli_heap_free(ircd_kline_heap, removed);
+    {
+            syn_debug(1, "Removing K:line on %s@%s", removed->user, removed->host);
+            free(removed->user);
+            free(removed->host);
+            free(removed->reason);
+            mowgli_heap_free(ircd_kline_heap, removed);
+            return;
+    }
 
     MOWGLI_LIST_FOREACH_SAFE(n, tn, ircd_wildcard_klines.head)
     {
