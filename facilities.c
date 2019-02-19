@@ -85,6 +85,7 @@ typedef struct
     int throttle[2];
 
     facility_cloak_type cloaking;
+    int cloak_override;
 
     mowgli_list_t blacklist;
 
@@ -157,11 +158,15 @@ void load_facilities()
             char *blocked = strtok(NULL, " ");
             char *throttle0 = strtok(NULL, " ");
             char *throttle1 = strtok(NULL, " ");
+
+            char *cloak_override = strtok(NULL, " ");
+
             strncpy(curr_facility->hostpart, hostpart, HOSTLEN);
             curr_facility->cloaking = cloak_type_from_string(cloaking);
             curr_facility->blocked = atoi(blocked);
             curr_facility->throttle[0] = atoi(throttle0);
             curr_facility->throttle[1] = atoi(throttle1);
+            curr_facility->cloak_override = cloak_override ? atoi(cloak_override) : 0;
 
             mowgli_patricia_add(facilities, curr_facility->hostpart, curr_facility);
             continue;
@@ -219,8 +224,8 @@ void save_facilities()
     facility_t *f;
     MOWGLI_PATRICIA_FOREACH(f, &state, facilities)
     {
-        fprintf(db, "F %s %s %d %d %d\n", f->hostpart, string_from_cloak_type(f->cloaking),
-                f->blocked, f->throttle[0], f->throttle[1]);
+        fprintf(db, "F %s %s %d %d %d %d\n", f->hostpart, string_from_cloak_type(f->cloaking),
+                f->blocked, f->throttle[0], f->throttle[1], f->cloak_override);
         if (f->blockmessage)
             fprintf(db, "BM %s\n", f->blockmessage);
         if (f->throttlemessage)
@@ -288,20 +293,23 @@ static void mod_deinit(module_unload_intent_t intent)
     hook_del_hook("incoming_host_change", on_host_change);
 }
 
-static void facility_set_cloak(user_t *u, const char * cloak)
+static void facility_set_cloak(user_t *u, const char * cloak, int cloak_override)
 {
     metadata_add(u, "syn:facility-cloak", cloak);
 
-    // Check whether they've already been cloaked. If vhost contains /, vhost != host, and
-    // vhost isn't unaffiliated/*, then they have a project cloak that we shouldn't override.
-    char *slash = strchr(u->vhost, '/');
-    if (slash != NULL && 0 != strncmp(u->vhost, "unaffiliated", slash - u->vhost) &&
-            0 != strncmp(u->vhost, u->host, HOSTLEN))
-        return;
+    if (cloak_override > 0)
+    {
+        metadata_add(u, "syn:facility-cloak-override", "1");
+        // Check whether they've already been cloaked. If vhost != host and
+        // vhost isn't unaffiliated/*, then they have a project cloak that we shouldn't override.
+        if (strncmp(u->vhost, "unaffiliated/", 13) &&
+            strncmp(u->vhost, u->host, HOSTLEN))
+            return;
 
-    // Don't send out a no-op cloak change either
-    if (strcmp(u->vhost, cloak))
-        user_sethost(syn->me, u, cloak);
+        // Don't send out a no-op cloak change either
+        if (strcmp(u->vhost, cloak))
+            user_sethost(syn->me, u, cloak);
+    }
 }
 
 void facility_newuser(hook_user_nick_t *data)
@@ -314,7 +322,7 @@ void facility_newuser(hook_user_nick_t *data)
     if (!u)
         return;
 
-    int blocked = 0, throttled = 0, blacklisted = 0;
+    int blocked = 0, throttled = 0, blacklisted = 0, cloak_override = 0;
     char *blockmessage = NULL, *throttlemessage = NULL;
     facility_cloak_type cloak = facility_cloak_none;
     facility_t *blocking_facility = NULL, *throttling_facility = NULL;
@@ -359,6 +367,9 @@ void facility_newuser(hook_user_nick_t *data)
 
         if (f->cloaking != facility_cloak_undefined)
             cloak = f->cloaking;
+
+        if (f->cloak_override)
+            cloak_override = f->cloak_override;
 
         char nuh[NICKLEN+USERLEN+HOSTLEN+GECOSLEN];
         snprintf(nuh, sizeof(nuh), "%s!%s@%s %s", u->nick, u->user, u->host, u->gecos);
@@ -433,7 +444,7 @@ void facility_newuser(hook_user_nick_t *data)
 
         case facility_cloak_account:
             {
-                facility_set_cloak(u, u->host);
+                facility_set_cloak(u, u->host, cloak_override);
                 break;
             }
 
@@ -455,7 +466,7 @@ void facility_newuser(hook_user_nick_t *data)
                     strncpy(ipstart, "ip.", new_vhost + HOSTLEN - ipstart);
                     ipstart += 3;
                     strncpy(ipstart, ip, new_vhost + HOSTLEN - ipstart);
-                    facility_set_cloak(u, new_vhost);
+                    facility_set_cloak(u, new_vhost, cloak_override);
                 }
                 else
                 {
@@ -490,7 +501,7 @@ void facility_newuser(hook_user_nick_t *data)
                 }
 
                 strncpy(identstart, suffix, new_vhost + HOSTLEN - identstart);
-                facility_set_cloak(u, new_vhost);
+                facility_set_cloak(u, new_vhost, cloak_override);
                 break;
             }
         case facility_cloak_random:
@@ -502,7 +513,7 @@ void facility_newuser(hook_user_nick_t *data)
                     break;
                 }
                 strncpy(randstart, get_random_host_part(u), new_vhost + HOSTLEN - randstart);
-                facility_set_cloak(u, new_vhost);
+                facility_set_cloak(u, new_vhost, cloak_override);
                 break;
             }
     }
@@ -540,6 +551,7 @@ static void syn_facility_help(sourceinfo_t *si, const char *subcmd)
         command_success_nodata(si, " - The message to send to clients denied because of this");
         command_success_nodata(si, "   facility's throttle.");
         command_success_nodata(si, " - The cloaking scheme applied to matching clients.");
+        command_success_nodata(si, " - Whether facility cloaks will override unaffiliated cloaks.");
         command_success_nodata(si, " - A blacklist of regular expressions. If any of these match");
         command_success_nodata(si, "   a client that matches this facility, it will be denied.");
         command_success_nodata(si, " ");
@@ -580,6 +592,10 @@ static void syn_facility_help(sourceinfo_t *si, const char *subcmd)
         command_success_nodata(si, "If no matching facility has a defined cloaking method, then");
         command_success_nodata(si, "the default is \2none\2.");
         command_success_nodata(si, " ");
+        command_success_nodata(si, "As with the 'blocked' setting, the override_unaff setting");
+        command_success_nodata(si, "may be set to 1 to disallow unaffiliated cloaks or -1");
+        command_success_nodata(si, "to specifically allow them even though a more general");
+        command_success_nodata(si, "facility would not allow them. The default is to allow them.");
         command_help(si, syn_facility_cmds);
         command_success_nodata(si, " ");
         command_success_nodata(si, _("For more information, use \2/msg %s HELP FACILITY \37command\37\2."), si->service->nick);
@@ -712,6 +728,21 @@ void syn_cmd_facility_set(sourceinfo_t *si, int parc, char **parv)
         syn_report("\002FACILITY SET\002 cloaking->%s for %s by %s",
                 string_from_cloak_type(cloak), f->hostpart, get_oper_name(si));
         command_success_nodata(si, "Cloaking method for %s set to %s", f->hostpart, string_from_cloak_type(cloak));
+
+        save_facilities();
+        return;
+    }
+
+    if (0 == strcasecmp(parv[1], "override_unaff"))
+    {
+        if (parc < 3)
+            f->cloak_override = 0;
+        else
+            f->cloak_override = atoi(parv[2]);
+
+        syn_report("\002FACILITY SET\002 override_unaff->%d for %s by %s",
+                f->cloak_override, f->hostpart, get_oper_name(si));
+        command_success_nodata(si, "Overriding unaffiliated cloaks for %s was set to %d", f->hostpart, f->cloak_override);
 
         save_facilities();
         return;
@@ -891,6 +922,8 @@ void syn_cmd_facility_show(sourceinfo_t *si, int parc, char **parv)
 
     command_success_nodata(si, "Facility %s:", f->hostpart);
     command_success_nodata(si, "  cloaking method: %s", string_from_cloak_type(f->cloaking));
+    command_success_nodata(si, "  unaffiliated cloaks: %s",
+            f->cloak_override > 0 ? "disallowed" : (f->cloak_override < 0 ? "allowed" : "(see parent facility)"));
     command_success_nodata(si, "  %s, block message \"%s\"",
             f->blocked > 0 ? "blocked" : ( f->blocked < 0 ? "unblocked" : "not blocked"),
             f->blockmessage);
@@ -917,7 +950,10 @@ static void on_host_change(void *vdata)
     if (!md)
         return;
 
-    if ((0 == strncmp(data->user->vhost, "unaffiliated/", 13) && 0 != strncmp(data->oldvhost, "nat/", 4)) ||
+    if (!metadata_find(data->user, "syn:facility-cloak-override"))
+        return;
+
+    if (0 == strncmp(data->user->vhost, "unaffiliated/", 13) ||
         0 == strncmp(data->user->vhost, data->user->host, HOSTLEN))
     {
         // Override the host change -- a facility cloak is being replaced by unaffiliated, or a facility by

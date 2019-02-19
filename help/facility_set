@@ -9,6 +9,7 @@ Possible settings are:
  - throttle
  - blockmessage
  - throttlemessage
+ - override_unaff
 
 See /msg &nick& HELP FACILITY for the meaning of each
 setting.
