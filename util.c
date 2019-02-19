@@ -184,7 +184,7 @@ static void syn_util_config_ready(void *unused)
     prf_ready = true;
 }
 
-static void mod_init(struct module *m)
+static void mod_init(module_t *m)
 {
     use_syn_main_symbols(m);
 
@@ -192,7 +192,7 @@ static void mod_init(struct module *m)
     hook_add_config_ready(syn_util_config_ready);
 }
 
-static void mod_deinit(enum module_unload_intent unused)
+static void mod_deinit(module_unload_intent_t unused)
 {
     del_conf_item("PRF_KEY", &syn->conf_table);
     hook_del_config_ready(syn_util_config_ready);
