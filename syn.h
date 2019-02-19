@@ -18,7 +18,7 @@ static inline void use_syn_main_symbols(module_t *m)
 }
 
 const char* (*decode_hex_ip)(const char *);
-const char* (*get_random_host_part)();
+const char* (*get_random_host_part)(user_t *);
 const char* (*encode_ident_for_host)(const char *);
 time_t (*syn_parse_duration)(const char *);
 const char* (*syn_format_expiry)(time_t);

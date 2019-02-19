@@ -501,7 +501,7 @@ void facility_newuser(hook_user_nick_t *data)
                     syn_debug(2, "Random cloaking used for %s, but I couldn't find a session marker in %s", u->nick, new_vhost);
                     break;
                 }
-                strncpy(randstart, get_random_host_part(), new_vhost + HOSTLEN - randstart);
+                strncpy(randstart, get_random_host_part(u), new_vhost + HOSTLEN - randstart);
                 facility_set_cloak(u, new_vhost);
                 break;
             }

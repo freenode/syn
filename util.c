@@ -1,6 +1,14 @@
 #include "atheme.h"
 #include "syn.h"
 
+#define PRF_KEY_LEN 16
+#define PRF_KEY_HEX_LEN (PRF_KEY_LEN * 2)
+#define PRF_OUT_LEN 16
+
+char *prf_key_hex = NULL;
+uint8_t prf_key[PRF_KEY_LEN];
+bool prf_ready = false;
+
 const char *_decode_hex_ip(const char *hex)
 {
     static char buf[16];
@@ -20,17 +28,35 @@ const char *_decode_hex_ip(const char *hex)
     return buf;
 }
 
-const char *_get_random_host_part()
+const char *_get_random_host_part(user_t *u)
 {
-    static char buf[19];
+    static char buf[PRF_OUT_LEN + 3];
 
     strcpy(buf, "x-");
 
-    for (int i=2; i < 18; ++i)
+    if (!prf_ready)
     {
-        buf[i] = 'a' + rand() % 26;
+        syn_debug(2, "PRF key not configured, falling back to random cloaking");
+        for (size_t i = 0; i < PRF_OUT_LEN; ++i)
+        {
+            buf[i + 2] = 'a' + rand() % 26;
+        }
     }
-    buf[18] = 0;
+    else
+    {
+        int siphash(const uint8_t *in, const size_t inlen, const uint8_t *k,
+                uint8_t *out, const size_t outlen);
+
+        uint8_t out[PRF_OUT_LEN];
+        siphash((unsigned char*)u->uid, strlen(u->uid), prf_key, out, PRF_OUT_LEN);
+
+        for (size_t i=0; i < PRF_OUT_LEN; ++i)
+        {
+            buf[i + 2] = 'a' + out[i] % 26;
+        }
+    }
+
+    buf[PRF_OUT_LEN + 2] = 0;
     return buf;
 }
 
@@ -128,9 +154,53 @@ const char *_syn_format_expiry(time_t t)
     return expirybuf;
 }
 
+static void syn_util_config_ready(void *unused)
+{
+    if (prf_key_hex == NULL)
+    {
+        slog(LG_ERROR, "syn/util: could not find 'prf_key' configuration entry");
+        prf_ready = false;
+        return;
+    }
+
+    if (strlen(prf_key_hex) != PRF_KEY_HEX_LEN)
+    {
+        slog(LG_ERROR, "syn/util: prf_key must be exactly %d hex digits", PRF_KEY_HEX_LEN);
+        prf_ready = false;
+        return;
+    }
+
+    // This could be done in a single big sscanf, but let's not do that
+    for (size_t i = 0; i < PRF_KEY_LEN; i++)
+    {
+        if (sscanf(prf_key_hex + (i * 2), "%2" SCNx8, &prf_key[i]) != 1)
+        {
+            slog(LG_ERROR, "syn/util: failed to parse prf_key - must be string of hex digits");
+            prf_ready = false;
+            return;
+        }
+    }
+
+    prf_ready = true;
+}
+
+static void mod_init(struct module *m)
+{
+    use_syn_main_symbols(m);
+
+    add_dupstr_conf_item("PRF_KEY", &syn->conf_table, 0, &prf_key_hex, NULL);
+    hook_add_config_ready(syn_util_config_ready);
+}
+
+static void mod_deinit(enum module_unload_intent unused)
+{
+    del_conf_item("PRF_KEY", &syn->conf_table);
+    hook_del_config_ready(syn_util_config_ready);
+}
+
 DECLARE_MODULE_V1
 (
-        "syn/util", false, NULL, NULL,
+        "syn/util", false, mod_init, mod_deinit,
         "$Revision$",
         "Stephen Bennett <stephen -at- freenode.net>"
 );

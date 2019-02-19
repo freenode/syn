@@ -20,6 +20,9 @@ endif
 %.so: %.c syn.h
 	gcc -std=c99 -Wall $(CFLAGS_WERROR) -O1 -ggdb3 -fPIC $(ATHEME_CFLAGS) -shared -o$@ $<
 
+util.so: util.c auxiliary/siphash.c
+	gcc -std=c99 -Wall $(CFLAGS_WERROR) -O1 -ggdb3 -fPIC $(ATHEME_CFLAGS) -shared -o$@ $^
+
 .PHONY: install
 
 install: $(MODULES)
