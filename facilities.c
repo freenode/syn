@@ -325,7 +325,7 @@ void facility_newuser(hook_user_nick_t *data)
     int blocked = 0, throttled = 0, blacklisted = 0, cloak_override = 0;
     char *blockmessage = NULL, *throttlemessage = NULL;
     facility_cloak_type cloak = facility_cloak_none;
-    facility_t *blocking_facility = NULL, *throttling_facility = NULL;
+    facility_t *blocking_facility = NULL, *throttling_facility = NULL, *cloaking_facility = NULL;
     char *blocking_regex = NULL;
 
     int dospam = 0;
@@ -366,7 +366,10 @@ void facility_newuser(hook_user_nick_t *data)
         }
 
         if (f->cloaking != facility_cloak_undefined)
+        {
             cloak = f->cloaking;
+            cloaking_facility = f;
+        }
 
         if (f->cloak_override)
             cloak_override = f->cloak_override;
@@ -471,7 +474,7 @@ void facility_newuser(hook_user_nick_t *data)
                 else
                 {
                     syn_report("Killing user %s; facility %s requires hexip but none was found",
-                            u->nick, blocking_facility->hostpart);
+                            u->nick, cloaking_facility->hostpart);
                     // If we couldn't decode an IP, block the connection
                     syn_kill2(u, "No IP address supplied", "Your gateway requires an underlying IP address to be supplied, which could not be found.");
                     data->u = NULL;
