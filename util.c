@@ -1,6 +1,7 @@
 #include "atheme.h"
+#include "syn.h"
 
-const char *decode_hex_ip(const char *hex)
+const char *_decode_hex_ip(const char *hex)
 {
     static char buf[16];
     unsigned int ip = 0;
@@ -19,7 +20,7 @@ const char *decode_hex_ip(const char *hex)
     return buf;
 }
 
-const char *get_random_host_part()
+const char *_get_random_host_part()
 {
     static char buf[19];
 
@@ -51,7 +52,7 @@ static unsigned int fnv_hash_string(const char *str)
 #define SUFFIX_HASH_FMT "%08ud"
 #define SUFFIX_HASH_MODULUS 100000000
 
-const char *encode_ident_for_host(const char *str)
+const char *_encode_ident_for_host(const char *str)
 {
     // ident + /x- + SUFFIX_HASH_LENGTH, and nul terminator
     static char buf[USERLEN + SUFFIX_HASH_LENGTH + 3 + 1];
@@ -89,7 +90,7 @@ const char *encode_ident_for_host(const char *str)
     return buf;
 }
 
-time_t syn_parse_duration(const char *s)
+time_t _syn_parse_duration(const char *s)
 {
     time_t duration = atol(s);
     while (isdigit(*s))
@@ -112,7 +113,7 @@ time_t syn_parse_duration(const char *s)
     return duration;
 }
 
-const char *syn_format_expiry(time_t t)
+const char *_syn_format_expiry(time_t t)
 {
     static char expirybuf[BUFSIZE];
     if (t > 0)
