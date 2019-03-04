@@ -30,9 +30,12 @@ const char *_decode_hex_ip(const char *hex)
 
 const char *_get_random_host_part(user_t *u)
 {
+    // UID, user, host, '!', '@', NUL
+    static char user_buf[9 + USERLEN + HOSTLEN + 3];
     static char buf[PRF_OUT_LEN + 3];
 
     strcpy(buf, "x-");
+    snprintf(user_buf, sizeof user_buf, "%s!%s@%s", u->uid, u->user, u->host);
 
     if (!prf_ready)
     {
@@ -48,7 +51,7 @@ const char *_get_random_host_part(user_t *u)
                 uint8_t *out, const size_t outlen);
 
         uint8_t out[PRF_OUT_LEN];
-        siphash((unsigned char*)u->uid, strlen(u->uid), prf_key, out, PRF_OUT_LEN);
+        siphash((unsigned char*)user_buf, strlen(user_buf), prf_key, out, PRF_OUT_LEN);
 
         for (size_t i=0; i < PRF_OUT_LEN; ++i)
         {
