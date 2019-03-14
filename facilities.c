@@ -293,23 +293,24 @@ static void mod_deinit(module_unload_intent_t intent)
     hook_del_hook("incoming_host_change", on_host_change);
 }
 
-static void facility_set_cloak(user_t *u, const char * cloak, int cloak_override)
+static void facility_set_cloak(user_t *u, const char * cloak, bool cloak_override)
 {
     metadata_add(u, "syn:facility-cloak", cloak);
 
-    if (cloak_override > 0)
-    {
+    if (cloak_override)
         metadata_add(u, "syn:facility-cloak-override", "1");
-        // Check whether they've already been cloaked. If vhost != host and
-        // vhost isn't unaffiliated/*, then they have a project cloak that we shouldn't override.
-        if (strncmp(u->vhost, "unaffiliated/", 13) &&
-            strncmp(u->vhost, u->host, HOSTLEN))
-            return;
 
-        // Don't send out a no-op cloak change either
-        if (strcmp(u->vhost, cloak))
-            user_sethost(syn->me, u, cloak);
-    }
+    // Check whether they've already been cloaked. If vhost != host, and
+    // vhost isn't unaffiliated/*, then they have a project cloak that we shouldn't override.
+    // If vhost != host, and vhost *is* unaffiliated but we don't override unaffiliated cloaks,
+    // don't do so either.
+    if ((strncmp(u->vhost, "unaffiliated/", 13) != 0 || !cloak_override) &&
+        strncmp(u->vhost, u->host, HOSTLEN) != 0)
+        return;
+
+    // Don't send out a no-op cloak change either
+    if (strcmp(u->vhost, cloak))
+        user_sethost(syn->me, u, cloak);
 }
 
 void facility_newuser(hook_user_nick_t *data)
@@ -436,6 +437,11 @@ void facility_newuser(hook_user_nick_t *data)
         data->u = NULL;
         return;
     }
+
+    if (cloak_override > 0)
+        cloak_override = 1;
+    else
+        cloak_override = 0;
 
     char new_vhost[HOSTLEN];
     mowgli_strlcpy(new_vhost, u->host, HOSTLEN);
@@ -953,14 +959,13 @@ static void on_host_change(void *vdata)
     if (!md)
         return;
 
-    if (!metadata_find(data->user, "syn:facility-cloak-override"))
-        return;
+    metadata_t *override = metadata_find(data->user, "syn:facility-cloak-override");
 
-    if (0 == strncmp(data->user->vhost, "unaffiliated/", 13) ||
+    if ((0 == strncmp(data->user->vhost, "unaffiliated/", 13) && override) ||
         0 == strncmp(data->user->vhost, data->user->host, HOSTLEN))
     {
-        // Override the host change -- a facility cloak is being replaced by unaffiliated, or a facility by
-        // another facility (this happens when removing a nickserv account vhost while a gateway user is logged in)
+        // Override the host change -- a facility cloak is being replaced by unaffiliated while we're disallowing it,
+        // or a facility by another facility (this happens when removing a nickserv account vhost while a gateway user is logged in)
         strshare_unref(data->user->vhost);
         data->user->vhost = strshare_get(md->value);
     }
