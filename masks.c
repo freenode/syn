@@ -221,6 +221,8 @@ void masks_newuser(hook_user_nick_t *data)
         if (! regex_match(m->re, nuh))
             continue;
 
+        m->last_match = CURRTIME;
+
         switch (m->type)
         {
             case mask_exempt:
@@ -236,12 +238,7 @@ void masks_newuser(hook_user_nick_t *data)
             case mask_unknown:
                 break;
         }
-
-        if (exempt)
-            break;
     }
-
-    m->last_match = CURRTIME;
 
     if (exempt == 1)
         return;
