@@ -87,7 +87,7 @@ static void syn_add_kline(const char *setter, const char *user, const char *host
         return;
     }
 
-    if (host[0] == '*' && host[1] == '\0')
+    if (user[0] == '*' && user[1] == '\0' && strcmp(user, host) == 0)
     {
         wallops("%s is an idiot. Dropping *@* kline.", setter);
         return;
