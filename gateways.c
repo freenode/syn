@@ -96,7 +96,7 @@ static void check_user(hook_user_nick_t *data, bool isnewuser)
 
     const char *identhost = decode_hex_ip(ident);
 
-    if (identhost && strcmp(identhost, u->ip) != 0)
+    if (identhost && (!u->ip || strcmp(identhost, u->ip) != 0))
     {
         if (maybe_kline_user_host(u, identhost))
         {
