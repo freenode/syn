@@ -264,8 +264,8 @@ void masks_newuser(hook_user_nick_t *data)
 
     if (blocked == 1)
     {
-        syn_report("Killing client %s(%s@%s) due to lethal mask %s",
-                u->nick, u->user, u->host, blocked_regex);
+        syn_report("Killing client %s(%s@%s) [%s] due to lethal mask %s",
+                u->nick, u->user, u->host, u->gecos, blocked_regex);
         syn_kill_or_kline(u, lethal_mask_duration, lethal_mask_message);
         data->u = NULL;
         return;
@@ -273,8 +273,8 @@ void masks_newuser(hook_user_nick_t *data)
 
     if (suspicious_regex)
     {
-        syn_report("Client %s(%s@%s) matches suspicious mask %s",
-                u->nick, u->user, u->host, suspicious_regex);
+        syn_report("Client %s(%s@%s) [%s] matches suspicious mask %s",
+                u->nick, u->user, u->host, u->gecos, suspicious_regex);
         return;
     }
 }
